@@ -1,0 +1,7 @@
+﻿  demo.cpp
+C:\Users\kksj4\Desktop\StableFluid_20210517\ziqi3D\demo.cpp(1,1): warning C4819: 현재 코드 페이지(949)에서 표시할 수 없는 문자가 파일에 들어 있습니다. 데이터가 손실되지 않게 하려면 해당 파일을 유니코드 형식으로 저장하십시오.
+C:\Users\kksj4\Desktop\StableFluid_20210517\ziqi3D\demo.cpp(28,21): warning C4305: '초기화 중': 'double'에서 'GLfloat'(으)로 잘립니다.
+  solver.cpp
+C:\Users\kksj4\Desktop\StableFluid_20210517\ziqi3D\solver.cpp(181,63): warning C4244: '=': 'double'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  코드를 생성하고 있습니다...
+  Smoke.vcxproj -> C:\Users\kksj4\Desktop\StableFluid_20210517\x64\Debug\Smoke3D.exe
