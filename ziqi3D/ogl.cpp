@@ -15,6 +15,9 @@
 #include "textfile.h"
 #include "solver.h"
 
+#include "vec.h"
+#include "mat.h"
+
 typedef bool wuBOOL;
 
 const int windowWidth = 600;
@@ -32,9 +35,62 @@ GLfloat rotationY;
 int N;
 Solver solver;
 GLfloat alpha = 0.05;
+wuBOOL drawVelocity = false;
 
 
 GLuint v,f,f2,p;
+
+GLuint uMat;
+GLuint uColor;
+mat4 g_Mat = mat4(1.0f);
+
+float g_time = 0;
+float g_aspect = 1;
+
+mat4 myLookAt(vec3 eye, vec3 at, vec3 up)
+{
+	mat4 V = mat4(1.0f);
+
+	up = normalize(up);
+	vec3 n = normalize(at - eye);
+	float a = dot(up, n);
+	vec3 v = normalize(up - a * n);
+	vec3 w = cross(n, v);
+
+	V[0] = vec4(w.x, w.y, w.z, dot(-w, eye));
+	V[1] = vec4(v.x, v.y, v.z, dot(-v, eye));
+	V[2] = vec4(-n.x, -n.y, -n.z, dot(n, eye));
+
+	return V;
+}
+
+mat4 myOrtho(float l, float r, float b, float t, float zNear, float zFar)
+{
+	vec3 center = vec3((l + r) / 2, (b + t) / 2, -(zNear) / 2);
+	mat4 T = Translate(-center);
+	mat4 S = Scale(2 / (r - l), 2 / (t - b), 1 / (-zNear + zFar));
+	mat4 V = S * T;
+
+	return V;
+}
+
+mat4 myPerspective(float angle, float aspect, float zNear, float zFar)
+{
+	mat4 V(1.0f);
+	// Implement your own code for computing the perspective matrix
+
+	float h = zFar * tan(angle / 2.0f * 3.141592f / 180.0f);
+	float w = h * aspect;
+
+	mat4 S = Scale(1 / w, 1 / h, 1.0f / zFar);
+	mat4 Mpt(1.0f);
+	float c = -zNear / zFar;
+	Mpt[2] = vec4(0, 0, 1 / (c + 1), -c / (c + 1));
+	Mpt[3] = vec4(0, 0, -1, 0);
+
+	V = Mpt * S;
+	return V;
+}
 
 void wuIdle()
 {
@@ -42,17 +98,11 @@ void wuIdle()
 	glutPostRedisplay();
 }
 
-void changeSize(GLint width, GLint height)
+void changeSize(int w, int h)
 {
-	glViewport(0, 0, width, height);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-
-	gluPerspective(45.0, (float)width / height, 0.001, 100.0);
-	glMatrixMode(GL_MODELVIEW);
-
-	glLoadIdentity();
-	glTranslatef(0.0f, 0.0f, -3.0f);
+	glViewport(0, 0, w, h);
+	g_aspect = w / float(h);
+	glutPostRedisplay();
 }
 
 void wuDrawGrid()
@@ -100,6 +150,123 @@ void wuDrawGrid()
 	glEnd();
 }
 
+void wuDrawDensity()
+{
+	GLfloat positionX;
+	GLfloat positionY;
+	GLfloat positionZ;
+
+	GLfloat density000;
+	GLfloat density010;
+	GLfloat density100;
+	GLfloat density110;
+	GLfloat density001;
+	GLfloat density011;
+	GLfloat density101;
+	GLfloat density111;
+
+	GLfloat h = 1.3f / N;
+
+	glBegin(GL_QUADS);
+	for (int x = 0; x < N; x++)
+	{
+		positionX = (x - 0.5f) * h;
+
+		for (int y = 0; y < N; y++)
+		{
+			positionY = (y - 0.5f) * h;
+
+			for (int z = 0; z < N; z++)
+			{
+				positionZ = (z - 0.5f) * h;
+
+				density000 = solver.getDensity(x, y, z);
+				density010 = solver.getDensity(x, y + 1, z);
+				density100 = solver.getDensity(x + 1, y, z);
+				density110 = solver.getDensity(x + 1, y + 1, z);
+
+				density001 = solver.getDensity(x, y, z + 1);
+				density011 = solver.getDensity(x, y + 1, z + 1);
+				density101 = solver.getDensity(x + 1, y, z + 1);
+				density111 = solver.getDensity(x + 1, y + 1, z + 1);
+
+				glColor4f(density111, density111, density111, alpha);
+				glVertex3f(positionX + h, positionY + h, positionZ + h);
+
+				glColor4f(density011, density011, density011, alpha);
+				glVertex3f(positionX, positionY + h, positionZ + h);
+
+				glColor4f(density001, density001, density001, alpha);
+				glVertex3f(positionX, positionY, positionZ + h);
+
+				glColor4f(density101, density101, density101, alpha);
+				glVertex3f(positionX + h, positionY, positionZ + h);
+
+				glColor4f(density110, density110, density110, alpha);
+				glVertex3f(positionX + h, positionY + h, positionZ);
+
+				glColor4f(density111, density111, density111, alpha);
+				glVertex3f(positionX + h, positionY + h, positionZ + h);
+
+				glColor4f(density101, density101, density101, alpha);
+				glVertex3f(positionX + h, positionY, positionZ + h);
+
+				glColor4f(density100, density100, density100, alpha);
+				glVertex3f(positionX + h, positionY, positionZ);
+
+				glColor4f(density010, density010, density010, alpha);
+				glVertex3f(positionX, positionY + h, positionZ);
+
+				glColor4f(density110, density110, density110, alpha);
+				glVertex3f(positionX + h, positionY + h, positionZ);
+
+				glColor4f(density100, density100, density100, alpha);
+				glVertex3f(positionX + h, positionY, positionZ);
+
+				glColor4f(density000, density000, density000, alpha);
+				glVertex3f(positionX, positionY, positionZ);
+
+				glColor4f(density011, density011, density011, alpha);
+				glVertex3f(positionX, positionY + h, positionZ + h);
+
+				glColor4f(density010, density010, density010, alpha);
+				glVertex3f(positionX, positionY + h, positionZ);
+
+				glColor4f(density000, density000, density000, alpha);
+				glVertex3f(positionX, positionY, positionZ);
+
+				glColor4f(density001, density001, density001, alpha);
+				glVertex3f(positionX, positionY, positionZ + h);
+
+				glColor4f(density100, density100, density100, alpha);
+				glVertex3f(positionX + h, positionY, positionZ);
+
+				glColor4f(density000, density000, density000, alpha);
+				glVertex3f(positionX, positionY, positionZ);
+
+				glColor4f(density001, density001, density001, alpha);
+				glVertex3f(positionX, positionY, positionZ + h);
+
+				glColor4f(density101, density101, density101, alpha);
+				glVertex3f(positionX + h, positionY, positionZ + h);
+
+				glColor4f(density110, density110, density110, alpha);
+				glVertex3f(positionX + h, positionY + h, positionZ);
+
+				glColor4f(density010, density010, density010, alpha);
+				glVertex3f(positionX, positionY + h, positionZ);
+
+				glColor4f(density011, density011, density011, alpha);
+				glVertex3f(positionX, positionY + h, positionZ + h);
+
+				glColor4f(density111, density111, density111, alpha);
+				glVertex3f(positionX + h, positionY + h, positionZ + h);
+			}
+		}
+	}
+	glEnd();
+}
+
 void wuDrawVelocity()
 {
 	GLfloat positionX;
@@ -131,25 +298,53 @@ void wuDrawVelocity()
 }
 
 void renderScene(void) {
+	/*glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+
+	glEnable(GL_ALPHA_TEST);
+	glAlphaFunc(GL_GREATER, 0);*/
+
+	uMat = glGetUniformLocation(p, "uMat");
+	uColor = glGetUniformLocation(p, "uColor");
 
 	glMatrixMode(GL_MODELVIEW);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	float vertices[] = {
-		// positions         // colors
-		 1.5f, 0.5f, 0.0f,  1.0f, 0.0f, 0.0f,  // bottom right
-		0.5f, 0.5f, 0.0f,  0.0f, 1.0f, 0.0f,  // bottom left
-		 1.0f,  1.5f, 0.0f,  0.0f, 0.0f, 1.0f   // top 
+	0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	1.3f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 1.3f, 0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.3f, 1.0f, 0.0f, 0.0f,
+	1.3f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	1.3f, 1.3f, 0.0f, 1.0f, 0.0f, 0.0f,
+	1.3f, 1.3f, 0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 1.3f, 0.0f, 1.0f, 0.0f, 0.0f,
+	0.0f, 1.3f, 1.3f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.3f, 1.0f, 0.0f, 0.0f,
+	0.0f, 1.3f, 1.3f, 1.0f, 0.0f, 0.0f,
+	0.0f, 1.3f, 0.0f, 1.0f, 0.0f, 0.0f,
+	1.3f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	1.3f, 0.0f, 1.3f, 1.0f, 0.0f, 0.0f,
+	0.0f, 0.0f, 1.3f, 1.0f, 0.0f, 0.0f,
+	1.3f, 0.0f, 1.3f, 1.0f, 0.0f, 0.0f,
+	1.3f, 1.3f, 0.0f, 1.0f, 0.0f, 0.0f,
+	1.3f, 1.3f, 1.3f, 1.0f, 0.0f, 0.0f,
+	1.3f, 1.3f, 1.3f, 1.0f, 0.0f, 0.0f,
+	1.3f, 0.0f, 1.3f, 1.0f, 0.0f, 0.0f,
+	0.0f, 1.3f, 1.3f, 1.0f, 0.0f, 0.0f,
+	1.3f, 1.3f, 1.3f, 1.0f, 0.0f, 0.0f
 	};
 
 	unsigned int VBO, VAO;
 	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 	glBindVertexArray(VAO);
 
+	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	// position attribute
@@ -159,12 +354,7 @@ void renderScene(void) {
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	if (!debug)
-	{
-		printf("%f, %f, %f, %f, %f", translationX, translationY, translationZ, rotationX,rotationY);
-		debug += 1;
-	}
-
+	/*
 	glPushMatrix();
 
 	glLoadIdentity();
@@ -172,15 +362,31 @@ void renderScene(void) {
 	glTranslatef(translationX, translationY, translationZ);
 	glRotatef(rotationX, 1.0f, 0, 0);
 	glRotatef(rotationY, 0, 1.0f, 0);
-
+	glScalef(0.25f, 0.25f, 0.25f);
+	
 	wuDrawGrid();
+	
 
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	if (drawVelocity)
+		wuDrawVelocity();
+	else 
+		wuDrawDensity();
+		*/
 
-	glPopMatrix();
+	mat4 ModelMat = myLookAt(vec3(2, 2, 2), vec3(0, 0, 0), vec3(0, 1, 0));
+	//mat4 ProjMat = myOrtho(-2, 2,-2, 2, 0.01, 10.0f);
+	mat4 ProjMat = myPerspective(60.f, g_aspect, 0.01f, 10.0f);
 
+	g_Mat = ProjMat * ModelMat;
+	//mat4 S9 = Scale(0.3f, 0.3f, 0.3f);
+	mat4 T9 = Translate(translationX,translationY, translationZ);
+	//mat4 L1 = T9 * S9;
+	mat4 W1 = RotateX(-10.f);
+	mat4 W2 = RotateY(rotationY);
 
-
+	glUniformMatrix4fv(uMat, 1, GL_TRUE, W1 * g_Mat);
+	glUniform4f(uColor, 1, 0, 0, 1);
+	glDrawArrays(GL_LINES, 0, 24);
 
 
 	glutSwapBuffers();
@@ -241,6 +447,10 @@ void wuKeyBoard(unsigned char key, int x, int y)
 	if (key == 'c' || key == 'C')
 	{
 		solver.reset();
+	}
+	if (key == 'v' || key == 'V')
+	{
+		drawVelocity = !drawVelocity;
 	}
 }
 

@@ -1,10 +1,13 @@
+#version 430 core
 
-#version 330 core
+in  vec4 color;
+out vec4 fColor;
 
-in vec3 ourColor;
-out vec4 FragColor;
-
-void main()
-{	
-	FragColor = vec4(ourColor, 1.0f);
+void
+main()
+{
+    fColor[0] = color[0];
+	fColor[1] = color[1];
+	fColor[2] = color[2];
+	fColor[3] = color[3];
 }
