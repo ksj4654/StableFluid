@@ -35,7 +35,7 @@ GLfloat rotationY;
 int N;
 Solver solver;
 GLfloat alpha = 0.05;
-wuBOOL drawVelocity = false;
+wuBOOL drawVelocity = true;
 
 
 GLuint v,f,f2,p;
@@ -103,51 +103,6 @@ void changeSize(int w, int h)
 	glViewport(0, 0, w, h);
 	g_aspect = w / float(h);
 	glutPostRedisplay();
-}
-
-void wuDrawGrid()
-{
-	glLineWidth(1.0f);
-
-	glBegin(GL_LINES);
-	glColor3f(1.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(1.3f, 0.0f, 0.0f);
-
-	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 1.3f, 0.0f);
-
-	glVertex3f(0.0f, 0.0f, 0.0f);
-	glVertex3f(0.0f, 0.0f, 1.3f);
-
-	glVertex3f(1.3f, 0.0f, 0.0f);
-	glVertex3f(1.3f, 1.3f, 0.0f);
-
-	glVertex3f(1.3f, 1.3f, 0.0f);
-	glVertex3f(0.0f, 1.3f, 0.0f);
-
-	glVertex3f(0.0f, 1.3f, 1.3f);
-	glVertex3f(0.0f, 0.0f, 1.3f);
-
-	glVertex3f(0.0f, 1.3f, 1.3f);
-	glVertex3f(0.0f, 1.3f, 0.0f);
-
-	glVertex3f(1.3f, 0.0f, 0.0f);
-	glVertex3f(1.3f, 0.0f, 1.3f);
-
-	glVertex3f(0.0f, 0.0f, 1.3f);
-	glVertex3f(1.3f, 0.0f, 1.3f);
-
-	glVertex3f(1.3f, 1.3f, 0.0f);
-	glVertex3f(1.3f, 1.3f, 1.3f);
-
-	glVertex3f(1.3f, 1.3f, 1.3f);
-	glVertex3f(1.3f, 0.0f, 1.3f);
-
-	glVertex3f(0.0f, 1.3f, 1.3f);
-	glVertex3f(1.3f, 1.3f, 1.3f);
-
-	glEnd();
 }
 
 void wuDrawDensity()
@@ -266,12 +221,15 @@ void wuDrawDensity()
 	}
 	glEnd();
 }
-
+/*
 void wuDrawVelocity()
 {
 	GLfloat positionX;
 	GLfloat positionY;
 	GLfloat positionZ;
+
+	float* velocityVertices = new float[N * N * N * 2 * 6];
+	int index = 0;
 
 	GLfloat h = 1.3f / N;
 	glColor3f(1.0, 1.0, 1.0);
@@ -285,17 +243,61 @@ void wuDrawVelocity()
 			for (int z = 0; z < N; z++)
 			{
 				positionZ = (z - 0.5f) * h;
+				/*
 				glBegin(GL_LINES);
 				glVertex3f(positionX, positionY, positionZ);
 				glVertex3f(positionX + solver.getVelocityU(x, y, z) / 2,
 					positionY + solver.getVelocityV(x, y, z) / 2,
 					positionZ + solver.getVelocityW(x, y, z) / 2);
 				glEnd();
+				
+				//
+				velocityVertices[index * 6] = positionX;
+				velocityVertices[index * 6 + 1] = positionY;
+				velocityVertices[index * 6 + 2] = positionZ;
+				velocityVertices[index * 6 + 3] = 0.f;
+				velocityVertices[index * 6 + 4] = 0.f;
+				velocityVertices[index * 6 + 5] = 1.f;
+				index += 1;
+				velocityVertices[index * 6] = positionX + solver.getVelocityU(x, y, z) / 2;
+				velocityVertices[index * 6 + 1] = positionY + solver.getVelocityV(x, y, z) / 2;
+				velocityVertices[index * 6 + 2] = positionZ + solver.getVelocityW(x, y, z) / 2;
+				velocityVertices[index * 6 + 3] = 0.f;
+				velocityVertices[index * 6 + 4] = 0.f;
+				velocityVertices[index * 6 + 5] = 1.f;
+				index += 1;
 			}
 		}
 	}
 
+	glBufferData(GL_ARRAY_BUFFER, sizeof(velocityVertices), velocityVertices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	mat4 ModelMat = myLookAt(vec3(3, 2, 2), vec3(0, 0, 0), vec3(0, 1, 0));
+	//mat4 ProjMat = myOrtho(-2, 2,-2, 2, 0.01, 10.0f);
+	mat4 ProjMat = myPerspective(60.f, g_aspect, 0.01f, 10.0f);
+
+	g_Mat = ProjMat * ModelMat;
+	//mat4 S9 = Scale(0.3f, 0.3f, 0.3f);
+	mat4 T9 = Translate(translationX, translationY, translationZ);
+	//mat4 L1 = T9 * S9;
+	mat4 W1 = RotateX(-10.f);
+	mat4 W2 = RotateY(rotationY);
+
+	glUniformMatrix4fv(uMat, 1, GL_TRUE, g_Mat);
+	glUniform4f(uColor, 1, 0, 0, 1);
+
+	glDrawArrays(GL_LINES, 0, N * N * N * 2);
+	delete velocityVertices;
 }
+
+*/
 
 void renderScene(void) {
 	/*glEnable(GL_BLEND);
@@ -373,21 +375,65 @@ void renderScene(void) {
 		wuDrawDensity();
 		*/
 
-	mat4 ModelMat = myLookAt(vec3(2, 2, 2), vec3(0, 0, 0), vec3(0, 1, 0));
+	mat4 ModelMat = myLookAt(vec3(3, 2, 2), vec3(0, 0, 0), vec3(0, 1, 0));
 	//mat4 ProjMat = myOrtho(-2, 2,-2, 2, 0.01, 10.0f);
 	mat4 ProjMat = myPerspective(60.f, g_aspect, 0.01f, 10.0f);
 
 	g_Mat = ProjMat * ModelMat;
 	//mat4 S9 = Scale(0.3f, 0.3f, 0.3f);
-	mat4 T9 = Translate(translationX,translationY, translationZ);
+	mat4 T9 = Translate(translationX, translationY, translationZ);
 	//mat4 L1 = T9 * S9;
 	mat4 W1 = RotateX(-10.f);
 	mat4 W2 = RotateY(rotationY);
 
-	glUniformMatrix4fv(uMat, 1, GL_TRUE, W1 * g_Mat);
+	glUniformMatrix4fv(uMat, 1, GL_TRUE, g_Mat);
 	glUniform4f(uColor, 1, 0, 0, 1);
 	glDrawArrays(GL_LINES, 0, 24);
 
+	if (drawVelocity) {
+		GLfloat positionX;
+		GLfloat positionY;
+		GLfloat positionZ;
+
+		float* velocityVertices = new float[N * N * N * int(2 * 6)];
+		int index = 0;
+
+		GLfloat h = 1.3f / N;
+		glColor3f(1.0, 1.0, 1.0);
+
+		for (int x = 0; x < N; x++)
+		{
+			positionX = (x - 0.5f) * h;
+			for (int y = 0; y < N; y++)
+			{
+				positionY = (y - 0.5f) * h;
+				for (int z = 0; z < N; z++)
+				{
+					positionZ = (z - 0.5f) * h;
+
+					velocityVertices[index * 6] = float(positionX);
+					velocityVertices[index * 6 + 1] = float(positionY);
+					velocityVertices[index * 6 + 2] = float(positionZ);
+					velocityVertices[index * 6 + 3] = 0.f;
+					velocityVertices[index * 6 + 4] = 0.f;
+					velocityVertices[index * 6 + 5] = 1.f;
+					index += 1;
+					velocityVertices[index * 6] = float(positionX + solver.getVelocityU(x, y, z) / 2);
+					velocityVertices[index * 6 + 1] = float(positionY + solver.getVelocityV(x, y, z) / 2);
+					velocityVertices[index * 6 + 2] = float(positionZ + solver.getVelocityW(x, y, z) / 2);
+					velocityVertices[index * 6 + 3] = 0.f;
+					velocityVertices[index * 6 + 4] = 0.f;
+					velocityVertices[index * 6 + 5] = 1.f;
+					index += 1;
+				}
+			}
+		}
+		glBufferData(GL_ARRAY_BUFFER, sizeof(velocityVertices), velocityVertices, GL_STATIC_DRAW);
+		glDrawArrays(GL_LINES, 0, N* N* N * 2);
+		delete velocityVertices;
+	}
+	else
+		wuDrawDensity();
 
 	glutSwapBuffers();
 }
