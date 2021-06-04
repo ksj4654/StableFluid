@@ -1,3 +1,4 @@
 ﻿  ogl.cpp
-C:\Users\kksj4\Desktop\stableFluid\ziqi3D\ogl.cpp(37,21): warning C4305: '초기화 중': 'double'에서 'GLfloat'(으)로 잘립니다.
+C:\Users\kksj4\Desktop\stableFluid\ziqi3D\MyCube.h(4,10): warning C4067: 전처리기 지시문 다음에 예기치 않은 토큰이 있습니다. 줄 바꿈 문자가 필요합니다.
+C:\Users\kksj4\Desktop\stableFluid\ziqi3D\ogl.cpp(41,21): warning C4305: '초기화 중': 'double'에서 'GLfloat'(으)로 잘립니다.
   Smoke.vcxproj -> C:\Users\kksj4\Desktop\stableFluid\x64\Debug\Smoke3D.exe

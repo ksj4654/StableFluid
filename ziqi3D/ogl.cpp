@@ -14,11 +14,15 @@
 //#include "glut.h"
 #include "textfile.h"
 #include "solver.h"
+#include "MyCube.h"
 
 #include "vec.h"
 #include "mat.h"
+#include "vgl.h"
 
 typedef bool wuBOOL;
+
+MyCube cube;
 
 const int windowWidth = 600;
 const int windowHeight = 800;
@@ -387,50 +391,11 @@ void renderScene(void) {
 	mat4 W2 = RotateY(rotationY);
 
 	glUniformMatrix4fv(uMat, 1, GL_TRUE, g_Mat);
-	glUniform4f(uColor, 1, 0, 0, 1);
+	glUniform4f(uColor, 0, 0, 0, 0);
 	glDrawArrays(GL_LINES, 0, 24);
 
 	if (drawVelocity) {
-		GLfloat positionX;
-		GLfloat positionY;
-		GLfloat positionZ;
-
-		float* velocityVertices = new float[N * N * N * int(2 * 6)];
-		int index = 0;
-
-		GLfloat h = 1.3f / N;
-		glColor3f(1.0, 1.0, 1.0);
-
-		for (int x = 0; x < N; x++)
-		{
-			positionX = (x - 0.5f) * h;
-			for (int y = 0; y < N; y++)
-			{
-				positionY = (y - 0.5f) * h;
-				for (int z = 0; z < N; z++)
-				{
-					positionZ = (z - 0.5f) * h;
-
-					velocityVertices[index * 6] = float(positionX);
-					velocityVertices[index * 6 + 1] = float(positionY);
-					velocityVertices[index * 6 + 2] = float(positionZ);
-					velocityVertices[index * 6 + 3] = 0.f;
-					velocityVertices[index * 6 + 4] = 0.f;
-					velocityVertices[index * 6 + 5] = 1.f;
-					index += 1;
-					velocityVertices[index * 6] = float(positionX + solver.getVelocityU(x, y, z) / 2);
-					velocityVertices[index * 6 + 1] = float(positionY + solver.getVelocityV(x, y, z) / 2);
-					velocityVertices[index * 6 + 2] = float(positionZ + solver.getVelocityW(x, y, z) / 2);
-					velocityVertices[index * 6 + 3] = 0.f;
-					velocityVertices[index * 6 + 4] = 0.f;
-					velocityVertices[index * 6 + 5] = 1.f;
-					index += 1;
-				}
-			}
-		}
-		glBufferData(GL_ARRAY_BUFFER, sizeof(velocityVertices), velocityVertices, GL_STATIC_DRAW);
-		glDrawArrays(GL_LINES, 0, N* N* N * 2);
-		delete velocityVertices;
+		cube.Draw(p);
 	}
 	else
 		wuDrawDensity();

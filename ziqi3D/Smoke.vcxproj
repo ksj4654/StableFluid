@@ -28,6 +28,7 @@
     <ClInclude Include="solver.h" />
     <ClInclude Include="textfile.h" />
     <ClInclude Include="vec.h" />
+    <ClInclude Include="MyCube.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="glutglsl.dsp" />
