@@ -344,13 +344,14 @@ void renderScene(void) {
 	1.3f, 1.3f, 1.3f, 1.0f, 0.0f, 0.0f
 	};
 
-	unsigned int VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
-
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
+	float velocityVertices[] = {
+	  0., 0., 0., 0.0f,1.0f,0.0f,
+	  1.0, 1.0, 1.0, 0.0f,0.0f,1.0f
+	};
+	GLuint abo[2];
+	glGenBuffers(2, &abo[0]);
+	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+	glBindBuffer(GL_ARRAY_BUFFER, abo[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
 	// position attribute
@@ -360,47 +361,74 @@ void renderScene(void) {
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
-	/*
-	glPushMatrix();
-
-	glLoadIdentity();
-
-	glTranslatef(translationX, translationY, translationZ);
-	glRotatef(rotationX, 1.0f, 0, 0);
-	glRotatef(rotationY, 0, 1.0f, 0);
-	glScalef(0.25f, 0.25f, 0.25f);
-	
-	wuDrawGrid();
-	
-
-	if (drawVelocity)
-		wuDrawVelocity();
-	else 
-		wuDrawDensity();
-		*/
-
-	mat4 ModelMat = myLookAt(vec3(3, 2, 2), vec3(0, 0, 0), vec3(0, 1, 0));
-	//mat4 ProjMat = myOrtho(-2, 2,-2, 2, 0.01, 10.0f);
-	mat4 ProjMat = myPerspective(60.f, g_aspect, 0.01f, 10.0f);
-
-	g_Mat = ProjMat * ModelMat;
-	//mat4 S9 = Scale(0.3f, 0.3f, 0.3f);
-	mat4 T9 = Translate(translationX, translationY, translationZ);
-	//mat4 L1 = T9 * S9;
-	mat4 W1 = RotateX(-10.f);
-	mat4 W2 = RotateY(rotationY);
-
+	uMat = glGetUniformLocation(p, "uMat");
+	mat4 ModelMat = myLookAt(vec3(2, 1.0f, -1.5), vec3(0, 0, 0), vec3(0, 1, 0));
+	mat4 ProjMat = myPerspective(60.f, 1, 1, 10);
+	g_Mat = ProjMat * ModelMat * Translate(-0.65f, -0.65f, -0.65f);
 	glUniformMatrix4fv(uMat, 1, GL_TRUE, g_Mat);
-	glUniform4f(uColor, 0, 0, 0, 0);
+	
+	// Draw Grid
 	glDrawArrays(GL_LINES, 0, 24);
+	
 
-	if (drawVelocity) {
-		cube.Draw(p);
+	// Draw Velocity Line
+	glBindBuffer(GL_ARRAY_BUFFER, abo[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(velocityVertices), velocityVertices, GL_STATIC_DRAW);
+
+	// position attribute
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	GLfloat positionX;
+	GLfloat positionY;
+	GLfloat positionZ;
+	mat4 u_Mat;
+
+	GLfloat h = 1.3f / N;
+
+	for (int x = 0; x < N; x++)
+	{
+		positionX = (x - 0.5f) * h;
+		for (int y = 0; y < N; y++)
+		{
+			positionY = (y - 0.5f) * h;
+			for (int z = 0; z < N; z++)
+			{
+				positionZ = (z - 0.5f) * h;
+
+				float VU = solver.getVelocityU(x, y, z) / 2;
+				float VV = solver.getVelocityV(x, y, z) / 2;
+				float VW = solver.getVelocityW(x, y, z) / 2;
+
+				u_Mat = g_Mat * Translate(positionX, positionY, positionZ) * Scale(VU, VV, VW);;
+				glUniformMatrix4fv(uMat, 1, GL_TRUE, u_Mat);
+				glDrawArrays(GL_LINES, 0, 2);
+			}
+		}
 	}
-	else
-		wuDrawDensity();
 
+	//g_Mat = ProjMat * ModelMat * Translate(-1.0f, -1.0f, -1.0f);
+
+	/*
+	wuDrawVelocity();
+
+	glBindBuffer(GL_ARRAY_BUFFER, abo[1]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(fluidvertice), fluidvertice, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	// color attribute
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
+	for (int i = 0; i < N * N * N; i++) {
+	   glDrawArrays(GL_LINES, 2 * i, 2);
+	}
+	*/
 	glutSwapBuffers();
+
 }
 
 void wuInitialize()
