@@ -125,12 +125,12 @@ float Solver::getVelocityU(int x, int y, int z)
 
 float Solver::getVelocityV(int x, int y, int z)
 {
-    return velocityU[wuIndex(x, y, z)];
+    return velocityV[wuIndex(x, y, z)];
 }
 
 float Solver::getVelocityW(int x, int y, int z)
 {
-    return velocityU[wuIndex(x, y, z)];
+    return velocityW[wuIndex(x, y, z)];
 }
 
 void Solver::add_source(float* value, float* value_prev)

@@ -304,11 +304,11 @@ void wuDrawVelocity()
 */
 
 void renderScene(void) {
-	/*glEnable(GL_BLEND);
+	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
 	glEnable(GL_ALPHA_TEST);
-	glAlphaFunc(GL_GREATER, 0);*/
+	glAlphaFunc(GL_GREATER, 0);
 
 	uMat = glGetUniformLocation(p, "uMat");
 	uColor = glGetUniformLocation(p, "uColor");
@@ -348,8 +348,41 @@ void renderScene(void) {
 	  0., 0., 0., 0.0f,1.0f,0.0f,
 	  1.0, 1.0, 1.0, 0.0f,0.0f,1.0f
 	};
-	GLuint abo[2];
-	glGenBuffers(2, &abo[0]);
+	
+	float dencityVertices[] = {
+		1.0f, 1.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 1.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 0.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+		1.0f, 0.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+
+		1.0f, 1.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		1.0f, 1.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+		1.0f, 0.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+		1.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+
+		0.0f, 1.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		1.0f, 1.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		1.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+
+		0.0f, 1.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 1.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 0.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+
+		1.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 0.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 0.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+		1.0f, 0.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+
+		1.0f, 1.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 1.0f, 0.0f, 0.3f, 0.3f, 0.3f,
+		0.0f, 1.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+		1.0f, 1.0f, 1.0f, 0.3f, 0.3f, 0.3f,
+	};
+
+	GLuint abo[3];
+	glGenBuffers(3, &abo[0]);
 	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 	glBindBuffer(GL_ARRAY_BUFFER, abo[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -370,46 +403,102 @@ void renderScene(void) {
 	// Draw Grid
 	glDrawArrays(GL_LINES, 0, 24);
 	
+	if (drawVelocity) {
+		// Draw Velocity Line
+		glBindBuffer(GL_ARRAY_BUFFER, abo[1]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(velocityVertices), velocityVertices, GL_STATIC_DRAW);
 
-	// Draw Velocity Line
-	glBindBuffer(GL_ARRAY_BUFFER, abo[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(velocityVertices), velocityVertices, GL_STATIC_DRAW);
+		// position attribute
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+		// color attribute
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
 
-	// position attribute
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	// color attribute
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
+		GLfloat positionX;
+		GLfloat positionY;
+		GLfloat positionZ;
+		mat4 u_Mat;
 
-	GLfloat positionX;
-	GLfloat positionY;
-	GLfloat positionZ;
-	mat4 u_Mat;
+		GLfloat h = 1.3f / N;
 
-	GLfloat h = 1.3f / N;
-
-	for (int x = 0; x < N; x++)
-	{
-		positionX = (x - 0.5f) * h;
-		for (int y = 0; y < N; y++)
+		for (int x = 0; x < N; x++)
 		{
-			positionY = (y - 0.5f) * h;
-			for (int z = 0; z < N; z++)
+			positionX = (x - 0.5f) * h;
+			for (int y = 0; y < N; y++)
 			{
-				positionZ = (z - 0.5f) * h;
+				positionY = (y - 0.5f) * h;
+				for (int z = 0; z < N; z++)
+				{
+					positionZ = (z - 0.5f) * h;
 
-				float VU = solver.getVelocityU(x, y, z) / 2;
-				float VV = solver.getVelocityV(x, y, z) / 2;
-				float VW = solver.getVelocityW(x, y, z) / 2;
+					float VU = solver.getVelocityU(x, y, z) / 2;
+					float VV = solver.getVelocityV(x, y, z) / 2;
+					float VW = solver.getVelocityW(x, y, z) / 2;
 
-				u_Mat = g_Mat * Translate(positionX, positionY, positionZ) * Scale(VU, VV, VW);;
-				glUniformMatrix4fv(uMat, 1, GL_TRUE, u_Mat);
-				glDrawArrays(GL_LINES, 0, 2);
+					u_Mat = g_Mat * Translate(positionX, positionY, positionZ) * Scale(VU, VV, VW);;
+					glUniformMatrix4fv(uMat, 1, GL_TRUE, u_Mat);
+					glDrawArrays(GL_LINES, 0, 2);
+				}
 			}
 		}
 	}
+	else {
+		// Draw Velocity Line
+		glBindBuffer(GL_ARRAY_BUFFER, abo[2]);
 
+		// position attribute
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+		// color attribute
+		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
+
+		GLfloat positionX;
+		GLfloat positionY;
+		GLfloat positionZ;
+		mat4 u_Mat;
+
+		GLfloat density;
+
+		GLfloat h = 1.3f / N;
+
+		for (int x = 0; x < N; x++)
+		{
+			positionX = (x - 0.5f) * h;
+			for (int y = 0; y < N; y++)
+			{
+				positionY = (y - 0.5f) * h;
+				for (int z = 0; z < N; z++)
+				{
+					positionZ = (z - 0.5f) * h;
+
+					density =
+						  (solver.getDensity(x, y, z)
+						+ solver.getDensity(x, y + 1, z)
+						+ solver.getDensity(x + 1, y, z)
+						+ solver.getDensity(x + 1, y + 1, z)
+
+						+ solver.getDensity(x, y, z + 1)
+						+ solver.getDensity(x, y + 1, z + 1)
+						+ solver.getDensity(x + 1, y, z + 1)
+						+ solver.getDensity(x + 1, y + 1, z + 1))/8;
+
+					u_Mat = g_Mat * Translate(positionX, positionY, positionZ) * Scale(h, h, h);;
+					glUniformMatrix4fv(uMat, 1, GL_TRUE, u_Mat);
+
+					for (int i = 0; i < 6; i++) {
+						dencityVertices[i * 6 + 3] = density;
+						dencityVertices[i * 6 + 4] = density;
+						dencityVertices[i * 6 + 5] = density;
+					}
+
+					glBufferData(GL_ARRAY_BUFFER, sizeof(dencityVertices), dencityVertices, GL_STATIC_DRAW);
+					glDrawArrays(GL_QUADS, 0, 24);
+				}
+			}
+		}
+	}
 	//g_Mat = ProjMat * ModelMat * Translate(-1.0f, -1.0f, -1.0f);
 
 	/*
